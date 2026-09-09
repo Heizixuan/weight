@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="黑子轩 · 体重变化记录与可视化小站，数据由 data.json 维护。">
+<meta name="theme-color" content="#f4f2eb">
+<title>黑子轩 · 减重记录</title>
+<style>
+:root{--bg:#f4f2eb;--ink:#252820;--mut:#7b8270;--line:#dcded1;--card:#fffef9;--green:#667b35;--green-d:#4a5c2a;--lime:#d9ed9e;--red:#b4554c}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,"Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}button{font:inherit}input{font:inherit}a{color:inherit;text-decoration:none}::selection{background:var(--lime)}
+.wrap{max-width:1200px;margin:0 auto;padding:0 28px}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:22px 0;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#2c3325;color:var(--lime);font-size:17px;font-weight:700}
+.bname{font-size:15px;font-weight:700}.bname b{display:block;font-weight:400;color:var(--mut);font-size:10px;letter-spacing:3px;margin-top:2px}
+.today{font-size:12px;color:var(--mut)}
+.hero{padding:52px 0 30px}
+.eyebrow{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:3px;color:var(--mut)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px #e7eadb}
+.hero h1{font-size:clamp(34px,4.6vw,56px);line-height:1.2;font-weight:600;letter-spacing:-1px;margin:18px 0 12px}
+.hero h1 span{color:var(--green)}
+.intro{font-size:14px;line-height:1.9;color:var(--mut);margin:0}
+.load-warn{margin:0 0 20px;padding:12px 16px;border:1px solid #e2c3b8;background:#fdf1ec;color:#9c4f42;border-radius:12px;font-size:12px;line-height:1.8}
+.load-warn[hidden]{display:none}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:0 0 22px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px 14px}
+.stat small{font-size:10px;letter-spacing:2px;color:var(--mut)}
+.stat .big{font-size:26px;font-weight:700;margin:7px 0 3px;font-variant-numeric:tabular-nums}
+.stat p{margin:0;font-size:11px;color:var(--mut);line-height:1.7}
+.good{color:#4c7a3d}.bad{color:var(--red)}
+.goal-ctl{margin-top:5px;font-size:11px;color:var(--mut);line-height:1.7}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:18px;align-items:start;padding-bottom:60px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px}
+.ph{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:14px}
+.ph h2{font-size:18px;font-weight:700;margin:0}
+.legend{display:flex;gap:14px;align-items:center;font-size:11px;color:var(--mut)}
+.legend i{display:inline-block;width:20px;height:0;vertical-align:middle;margin-right:6px}
+.lg-act{border-top:3px solid var(--green)}
+.lg-goal{border-top:2px dashed #c07a63}
+.chart-box{position:relative;height:340px}
+.chart-box canvas{display:block;width:100%;height:100%;cursor:crosshair}
+.empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--mut);font-size:13px;pointer-events:none;text-align:center;padding:0 30px;line-height:2}
+.empty[hidden]{display:none}.tip[hidden]{display:none}
+.hint{margin:12px 0 0;font-size:11px;color:var(--mut);text-align:center}
+.tip{position:absolute;pointer-events:none;background:#2c3325;color:#f2f4e7;border-radius:10px;padding:8px 12px;font-size:12px;z-index:5;box-shadow:0 6px 18px rgba(40,46,28,.18);line-height:1.6}
+.tt-d{font-size:10px;color:#b8c2a4;letter-spacing:1px}
+.tt-w{font-weight:700;font-size:14px}
+.tt-w .chip{margin-left:6px;font-size:10px}
+.tt-s{font-size:11px;color:#b8c2a4}
+#list{max-height:520px;overflow:auto;scrollbar-width:thin;scrollbar-color:#cdd2bf transparent}
+.row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px dashed var(--line)}
+.row:last-child{border-bottom:0}
+.rd{min-width:96px}
+.rd b{display:block;font-size:14px;font-weight:700}
+.rd span{display:block;font-size:10px;color:var(--mut);margin-top:2px}
+.note{flex:1;min-width:0;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{font-size:10px;padding:3px 9px;border-radius:99px;background:#eef1e2;color:var(--green-d);white-space:nowrap}
+.chip.bad{background:#f6e6e0;color:var(--red)}
+.chip.flat{background:#efefe9;color:var(--mut)}
+.rw{font-weight:700;font-variant-numeric:tabular-nums;font-size:17px;min-width:56px;text-align:right}
+.empty-state{padding:42px 10px;text-align:center;color:var(--mut);font-size:13px;line-height:2}
+footer{border-top:1px solid var(--line);padding:22px 0 30px;font-size:10px;color:var(--mut);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#2c3325;color:#f2f4e7;padding:11px 20px;border-radius:99px;font-size:13px;z-index:50;box-shadow:0 8px 22px rgba(40,46,28,.25);animation:pop .25s ease}
+@keyframes pop{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+a:focus-visible,button:focus-visible{outline:3px solid #92ac56;outline-offset:2px}
+@media(max-width:1020px){.grid{grid-template-columns:1fr}#list{max-height:none}}
+@media(max-width:900px){.stats{grid-template-columns:1fr 1fr}.hero{padding-top:38px}}
+@media(max-width:640px){.wrap{padding:0 16px}.stats{gap:10px}.stat{padding:14px}.stat .big{font-size:22px}.chart-box{height:300px}.row{flex-wrap:wrap}.note{flex-basis:100%;order:5}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <a class="brand" href="#" aria-label="黑子轩首页"><span class="mark">轩</span><span class="bname">黑子轩<b>WEIGHT JOURNAL · 减重记录</b></span></a>
+  <div class="today" id="today"></div>
+</header>
+<main>
+<section class="hero">
+  <p class="eyebrow"><span class="dot"></span> HZX · EVERY GRAM COUNTS</p>
+  <h1>每一次站上秤，<span>都算数。</span></h1>
+  <p class="intro">我的减重记录 · 数据由同目录的 <b>data.json</b> 维护。<br>编辑文件里的日期与体重，刷新页面即可看到更新。</p>
+</section>
+
+<div class="load-warn" id="loadWarn" hidden>无法读取 data.json。直接双击打开网页时浏览器禁止读取本地文件，请改用本地服务器访问（如在目录下运行 <b>python -m http.server</b>），或将 index.html 与 data.json 一起上传到服务器后再访问。</div>
+
+<section class="stats" aria-label="数据概览">
+  <article class="stat"><small>当前体重</small><div class="big" id="stCur">—</div><p id="stCurAt">等待数据</p></article>
+  <article class="stat"><small>累计变化</small><div class="big" id="stDiff">—</div><p id="stDiffAt">较首次记录</p></article>
+  <article class="stat"><small>记录数</small><div class="big" id="stCount">0</div><p id="stSpan">等待第一条记录</p></article>
+  <article class="stat"><small>目标体重</small><div class="big" id="goalVal">—</div><div class="goal-ctl" id="goalCtl"></div></article>
+</section>
+
+<section class="grid">
+  <div class="panel">
+    <div class="ph"><h2>体重趋势</h2><div class="legend"><span><i class="lg-act"></i>实际</span><span><i class="lg-goal"></i>目标</span></div></div>
+    <div class="chart-box" id="chartBox">
+      <canvas id="chart" aria-label="体重变化折线图"></canvas>
+      <div class="empty" id="chartEmpty">data.json 中还没有记录<br>在文件里添加后刷新页面即可</div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <p class="hint">把鼠标移到曲线上，可查看每次记录的详情</p>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><h2>历史记录</h2></div>
+    <div id="list"></div>
+  </div>
+</section>
+</main>
+<footer><span>数据来源：同目录 data.json · 编辑文件后刷新生效</span><span>© <span id="year"></span></span></footer>
+</div>
+<div id="toast" class="toast" hidden></div>
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id)};
+var DATA='data.json';
+var records=[],goal=null;
+var lastPts=[],lastHi=-1;
+var GL={l:46,r:16,t:14,b:30};
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function pad(n){return String(n).padStart(2,'0')}
+function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function toDate(s){return new Date(s+'T00:00:00')}
+var WD=['日','一','二','三','四','五','六'];
+function md(s){return parseInt(s.slice(5,7),10)+'月'+parseInt(s.slice(8,10),10)+'日'}
+function wd(s){return '周'+WD[toDate(s).getDay()]}
+function rel(s){var d=Math.round((toDate(iso(new Date()))-toDate(s))/864e5);if(d===0)return '今天';if(d===1)return '昨天';if(d>1&&d<30)return d+'天前';return ''}
+function f1(v){return (Math.round(v*10)/10).toFixed(1)}
+function toast(msg){var t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(t._tm);t._tm=setTimeout(function(){t.hidden=true},3000)}
+
+/* ---------- 统计卡片 ---------- */
+function renderStats(){
+  var sorted=[].concat(records).sort(function(a,b){return a.d<b.d?-1:1});
+  var cur=sorted[sorted.length-1];
+  var $c=$('stCur'),$cd=$('stDiff'),$ct=$('stCount'),$ca=$('stCurAt'),$cdA=$('stDiffAt'),$cs=$('stSpan');
+  if(!cur){$c.textContent='—';$cd.textContent='—';$cd.className='big';$ct.textContent='0';$ca.textContent='暂无记录';$cdA.textContent='较首次记录';$cs.textContent='等待第一条记录';return}
+  $c.textContent=f1(cur.w)+' kg';
+  $ca.textContent='记录于 '+md(cur.d)+' '+wd(cur.d);
+  $ct.textContent=records.length+' 次';
+  var days=Math.max(1,Math.round((toDate(cur.d)-toDate(sorted[0].d))/864e5)+1);
+  $cs.textContent=records.length>1?('时间跨度 '+days+' 天'):'开始记录第一天';
+  if(records.length>1){
+    var d=cur.w-sorted[0].w;
+    if(d===0){$cd.textContent='— 持平';$cd.className='big';}
+    else{$cd.textContent=(d>0?'↑ +':'↓ ')+f1(Math.abs(d))+' kg';$cd.className='big '+(d>0?'bad':'good');}
+    $cdA.textContent='较首次记录（'+md(sorted[0].d)+'）';
+  }else{$cd.textContent='—';$cd.className='big';$cdA.textContent='再记一次就能看变化'}
+}
+
+/* ---------- 目标体重（只读，来自 data.json） ---------- */
+function renderGoal(){
+  var val=$('goalVal'),ctl=$('goalCtl');
+  if(!goal){val.textContent='—';
+    ctl.textContent='未设置 · 可在 data.json 中添加 goal 字段';return}
+  val.textContent=f1(goal)+' kg';
+  var cur=records.length?[].concat(records).sort(function(a,b){return a.d<b.d?-1:1}).pop().w:null;
+  if(cur==null)ctl.textContent='记录第一条后可见差距';
+  else{var d=cur-goal;ctl.innerHTML=d<=0?'<span class="good">已达成目标 ✓</span>':'还差 <b>'+f1(d)+' kg</b>'}
+}
+
+/* ---------- 历史记录列表（只读） ---------- */
+function renderList(){
+  var box=$('list');
+  if(!records.length){box.innerHTML='<div class="empty-state">data.json 中还没有记录<br>在文件里添加后刷新页面即可</div>';return}
+  var sorted=[].concat(records).sort(function(a,b){return a.d<b.d?-1:1});
+  var items=[];
+  for(var i=0;i<sorted.length;i++){
+    var r=sorted[i];
+    var d=i>0?r.w-sorted[i-1].w:0;
+    var chip='';
+    if(i>0){if(d<0)chip='<span class="chip good">↓ '+f1(Math.abs(d))+'</span>';else if(d>0)chip='<span class="chip bad">↑ '+f1(d)+'</span>';else chip='<span class="chip flat">持平</span>'}
+    var relT=rel(r.d);
+    items.push('<div class="row">'+
+      '<div class="rd"><b>'+md(r.d)+'</b><span>'+wd(r.d)+(relT?' · '+relT:'')+'</span></div>'+
+      '<span class="note">'+(r.n?esc(r.n):'')+'</span>'+
+      chip+
+      '<span class="rw">'+f1(r.w)+' kg</span>'+
+      '</div>');
+  }
+  box.innerHTML=items.reverse().join('');
+}
+
+/* ---------- 图表 ---------- */
+function niceStep(range,count){
+  var raw=range/count||0.1,mag=Math.pow(10,Math.floor(Math.log(raw)/Math.LN10)),norm=raw/mag,s;
+  if(norm<=1)s=1;else if(norm<=2)s=2;else if(norm<=5)s=5;else s=10;
+  return s*mag;
+}
+function drawChart(hi){
+  hi=hi===undefined?-1:hi;
+  var cv=$('chart'),box=$('chartBox'),emp=$('chartEmpty'),tip=$('tip');
+  var w=box.clientWidth,h=box.clientHeight;
+  if(!records.length){emp.hidden=false;cv.style.display='none';tip.hidden=true;lastPts=[];lastHi=-1;return}
+  emp.hidden=true;cv.style.display='block';
+  var dpr=window.devicePixelRatio||1;
+  cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);
+  var ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  var arr=[].concat(records).sort(function(a,b){return a.d<b.d?-1:1});
+  var t0=+toDate(arr[0].d),t1=+toDate(arr[arr.length-1].d),ts=(t1-t0)||1;
+  var lo=arr[0].w,hiW=arr[0].w;
+  arr.forEach(function(r){lo=Math.min(lo,r.w);hiW=Math.max(hiW,r.w)});
+  if(goal){lo=Math.min(lo,goal);hiW=Math.max(hiW,goal)}
+  var pad=Math.max(0.6,(hiW-lo)*0.22),yMin=lo-pad,yMax=hiW+pad;
+  var iw=w-GL.l-GL.r,ih=h-GL.t-GL.b;
+  function X(t){return arr.length===1?GL.l+iw/2:GL.l+(t-t0)/ts*iw}
+  function Y(v){return GL.t+(yMax-v)/(yMax-yMin)*ih}
+  ctx.font='11px Arial';ctx.textBaseline='middle';
+
+  /* 水平网格与 Y 轴刻度 */
+  var step=niceStep(yMax-yMin,4),v=Math.ceil(yMin/step)*step;
+  ctx.textAlign='right';
+  while(v<=yMax+step/1000){
+    var yy=Math.round(Y(v));
+    ctx.strokeStyle='#e7e9dc';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(GL.l,yy);ctx.lineTo(w-GL.r,yy);ctx.stroke();
+    ctx.fillStyle='#8a8f80';
+    ctx.fillText(String(Math.round(v*10)/10),GL.l-9,yy);
+    v+=step;
+  }
+  /* X 轴刻度（至多 6 个） */
+  var n=Math.min(6,arr.length),ids=[];
+  for(var j=0;j<n;j++){var k=Math.round((arr.length-1)*j/(n-1));if(ids.indexOf(k)<0)ids.push(k)}
+  ctx.textAlign='center';ctx.textBaseline='top';
+  ids.forEach(function(i){
+    var x=Math.round(X(+toDate(arr[i].d)));
+    ctx.strokeStyle='#eef0e4';ctx.beginPath();ctx.moveTo(x,GL.t);ctx.lineTo(x,h-GL.b);ctx.stroke();
+    ctx.fillStyle='#8a8f80';
+    var s=arr[i].d.slice(2,4)===(new Date().getFullYear()%100)||i>0?arr[i].d.slice(5,7)+'/'+arr[i].d.slice(8,10):arr[i].d.slice(2);
+    ctx.fillText(s,x,h-GL.b+7);
+  });
+  /* 折线数据点坐标 */
+  var pts=arr.map(function(r){return{d:r.d,w:r.w,x:X(+toDate(r.d)),y:Y(r.w)}});
+  lastPts=pts;
+  /* 面积渐变 */
+  var grad=ctx.createLinearGradient(0,GL.t,0,h-GL.b);
+  grad.addColorStop(0,'rgba(102,123,53,.22)');grad.addColorStop(1,'rgba(102,123,53,0)');
+  ctx.beginPath();ctx.moveTo(pts[0].x,h-GL.b);
+  pts.forEach(function(p){ctx.lineTo(p.x,p.y)});
+  ctx.lineTo(pts[pts.length-1].x,h-GL.b);ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+  /* 目标线（虚线） */
+  if(goal){var gy=Y(goal);
+    if(gy>GL.t&&gy<h-GL.b){
+      ctx.strokeStyle='#c07a63';ctx.lineWidth=1.5;ctx.setLineDash([6,5]);
+      ctx.beginPath();ctx.moveTo(GL.l,gy);ctx.lineTo(w-GL.r,gy);ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.textAlign='right';ctx.textBaseline='bottom';
+      ctx.fillStyle='#c07a63';ctx.font='11px Arial';
+      ctx.fillText('目标 '+f1(goal)+' kg',w-GL.r,gy-4);
+    }}
+  /* 折线 */
+  ctx.beginPath();pts.forEach(function(p,i){i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)});
+  ctx.strokeStyle='#5c7040';ctx.lineWidth=2.6;ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();
+  /* 数据点 */
+  pts.forEach(function(p,i){
+    ctx.beginPath();ctx.arc(p.x,p.y,4.2,0,Math.PI*2);
+    ctx.fillStyle='#2c3325';ctx.fill();
+    ctx.strokeStyle='#fffef9';ctx.lineWidth=2;ctx.stroke();
+    if(i===0||i===pts.length-1){
+      ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);
+      ctx.strokeStyle=i===pts.length-1?'rgba(92,112,64,.45)':'rgba(138,143,128,.45)';
+      ctx.lineWidth=1.5;ctx.stroke();
+    }
+  });
+  /* 悬停高亮 */
+  if(hi>=0&&hi<pts.length){
+    var p=pts[hi];
+    ctx.strokeStyle='rgba(44,51,37,.18)';ctx.lineWidth=1;
+    ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(p.x,GL.t);ctx.lineTo(p.x,h-GL.b);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc(p.x,p.y,10,0,Math.PI*2);ctx.strokeStyle='rgba(92,112,64,.5)';ctx.lineWidth=5;ctx.stroke();
+    ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fillStyle='#2c3325';ctx.fill();
+  }
+}
+function hideTip(){$('tip').hidden=true}
+function showTip(idx,mx,my){
+  var p=lastPts[idx],box=$('chartBox'),tip=$('tip');
+  if(!p)return;
+  var diff=p.w-(idx>0?lastPts[idx-1].w:null);
+  var line='';
+  if(idx>0){if(diff<0)line='<span class="good">↓ '+f1(Math.abs(diff))+'</span>';else if(diff>0)line='<span class="bad">↑ '+f1(diff)+'</span>';else line='<span style="color:#b8c2a4">持平</span>'}
+  tip.innerHTML='<div class="tt-d">'+md(p.d)+' · '+wd(p.d)+'</div><div class="tt-w">'+f1(p.w)+' kg <span class="chip">'+(idx>0?line:'首次记录')+'</span></div><div class="tt-s">较上一条：'+(idx>0?(diff<0?('↓ '+f1(Math.abs(diff))):diff>0?('↑ '+f1(diff)):'—')+' kg':'—')+'</div>';
+  tip.hidden=false;
+  var tw=tip.offsetWidth,th=tip.offsetHeight;
+  var left=Math.min(Math.max(6,p.x-tw/2),box.clientWidth-tw-6);
+  tip.style.left=left+'px';
+  var top=(my-th-16>6)?my-th-16:my+14;
+  tip.style.top=top+'px';
+}
+(function(){
+  var cv=$('chart'),box=$('chartBox');
+  cv.addEventListener('mousemove',function(e){
+    if(!lastPts.length)return;
+    var rect=box.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    var best=-1,bd=1e9;
+    lastPts.forEach(function(p,i){var dd=Math.abs(p.x-mx);if(dd<bd){bd=dd;best=i}});
+    if(bd>30){hideTip();if(lastHi!==-1){lastHi=-1;drawChart(-1)}return}
+    if(lastHi!==best){lastHi=best;drawChart(best)}
+    showTip(best,mx,my);
+  });
+  cv.addEventListener('mouseleave',function(){hideTip();if(lastHi!==-1){lastHi=-1;drawChart(-1)}});
+})();
+var rzTm;
+window.addEventListener('resize',function(){clearTimeout(rzTm);rzTm=setTimeout(function(){hideTip();drawChart(-1)},160)});
+
+/* ---------- 渲染 ---------- */
+function renderAll(){renderStats();renderGoal();drawChart(-1);renderList()}
+
+/* ---------- 读取 data.json ---------- */
+function load(){
+  fetch(DATA,{cache:'no-store'}).then(function(res){
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    return res.json();
+  }).then(function(j){
+    var list=Array.isArray(j)&&j[0]&&j[0].d?j:j.records; /* 兼容「直接是数组」与「{goal,records}」两种结构 */
+    if(!Array.isArray(list))throw new Error('缺少 records 数组');
+    records=list.map(function(r){return{d:String(r.d||''),w:Number(r.w),n:r.n==null?'':String(r.n).trim()}})
+      .filter(function(r){return /^\d{4}-\d{2}-\d{2}$/.test(r.d)&&isFinite(r.w)&&r.w>10&&r.w<400});
+    var g=parseFloat(j.goal);
+    goal=(g>0&&g<400)?g:null;
+    renderAll();
+  }).catch(function(err){
+    $('loadWarn').hidden=false;
+    toast('读取 data.json 失败');
+    console.error('load data.json error:',err);
+  });
+}
+
+$('today').textContent='今天 · '+md(iso(new Date()))+' '+wd(iso(new Date()));
+$('year').textContent=new Date().getFullYear();
+load();
+})();
+</script>
+</body>
+</html>
